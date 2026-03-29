@@ -1,0 +1,73 @@
+CREATE DATABASE IF NOT EXISTS travel_app;
+USE travel_app;
+
+CREATE TABLE User (
+    UserID INT PRIMARY KEY AUTO_INCREMENT,
+    Username VARCHAR(50) NOT NULL UNIQUE,
+    Email VARCHAR(100) NOT NULL UNIQUE,
+    PasswordHash VARCHAR(255) NOT NULL,
+    DisplayName VARCHAR(100) NOT NULL,
+    Role VARCHAR(20) NOT NULL,
+    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CHECK (Role IN ('tourist', 'business_owner', 'admin'))
+);
+
+CREATE TABLE Place (
+    PlaceID INT PRIMARY KEY AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Description TEXT,
+    Address VARCHAR(255) NOT NULL,
+    Hours VARCHAR(100),
+    ContactInfo VARCHAR(100),
+    Website VARCHAR(255),
+    AvgRating DECIMAL(2,1) DEFAULT 0.0,
+    IsActive BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE Review (
+    ReviewID INT PRIMARY KEY AUTO_INCREMENT,
+    UserID INT NOT NULL,
+    PlaceID INT NOT NULL,
+    Rating INT NOT NULL,
+    Title VARCHAR(100),
+    Body TEXT,
+    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (UserID) REFERENCES User(UserID),
+    FOREIGN KEY (PlaceID) REFERENCES Place(PlaceID),
+    CHECK (Rating BETWEEN 1 AND 5),
+    UNIQUE (UserID, PlaceID)
+);
+
+CREATE TABLE TripList (
+    ListID INT PRIMARY KEY AUTO_INCREMENT,
+    UserID INT NOT NULL,
+    Title VARCHAR(100) NOT NULL,
+    Description TEXT,
+    IsPublic BOOLEAN DEFAULT TRUE,
+    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (UserID) REFERENCES User(UserID)
+);
+
+CREATE TABLE Category (
+    CategoryID INT PRIMARY KEY AUTO_INCREMENT,
+    TagName VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE TripListItem (
+    ListID INT NOT NULL,
+    PlaceID INT NOT NULL,
+    Position INT NOT NULL,
+    Note VARCHAR(255),
+    PRIMARY KEY (ListID, PlaceID),
+    FOREIGN KEY (ListID) REFERENCES TripList(ListID),
+    FOREIGN KEY (PlaceID) REFERENCES Place(PlaceID)
+);
+
+CREATE TABLE PlaceCategory (
+    PlaceID INT NOT NULL,
+    CategoryID INT NOT NULL,
+    PRIMARY KEY (PlaceID, CategoryID),
+    FOREIGN KEY (PlaceID) REFERENCES Place(PlaceID),
+    FOREIGN KEY (CategoryID) REFERENCES Category(CategoryID)
+);
