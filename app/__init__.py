@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+
 from config import Config
 from app.db import get_db_connection
-from app.auth import hash_password
+from app.auth import hash_password, verify_password
 
 
 def create_app():
@@ -69,6 +70,36 @@ def create_app():
             return redirect(url_for("login"))
 
         return render_template("register.html")
+
+    @app.route("/login", methods=["GET", "POST"])
+    def login():
+        if request.method == "POST":
+            email = request.form["email"]
+            password = request.form["password"]
+
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+
+            cursor.execute(
+                "SELECT UserID, Username, Email, PasswordHash, DisplayName, Role FROM `User` WHERE Email = %s",
+                (email,)
+            )
+            user = cursor.fetchone()
+
+            cursor.close()
+            connection.close()
+
+            if user and verify_password(password, user["PasswordHash"]):
+                session["user_id"] = user["UserID"]
+                session["username"] = user["Username"]
+                session["role"] = user["Role"]
+                flash("Login successful.")
+                return redirect(url_for("home"))
+
+            flash("Invalid email or password.")
+            return redirect(url_for("login"))
+
+        return render_template("login.html")
 
     @app.route("/debug/places")
     def debug_places():
