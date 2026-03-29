@@ -24,3 +24,15 @@ CREATE DATABASE travel_app;
 python3 run.py
 ```
 
+## Database Schema Setup
+
+1. To create the database schema, run:
+
+```
+mysql -u root -p < sql/schema.sql
+```
+To verify the schema in MySQL:
+```
+USE travel_app;
+SHOW TABLES;
+```
