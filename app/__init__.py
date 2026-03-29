@@ -1,6 +1,7 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for, flash
 from config import Config
 from app.db import get_db_connection
+from app.auth import hash_password
 
 
 def create_app():
@@ -27,6 +28,47 @@ def create_app():
             return {"status": "ok", "database": "connected"}
         except Exception as e:
             return {"status": "error", "database": str(e)}, 500
+
+    @app.route("/register", methods=["GET", "POST"])
+    def register():
+        if request.method == "POST":
+            username = request.form["username"]
+            email = request.form["email"]
+            display_name = request.form["display_name"]
+            password = request.form["password"]
+            password_hash = hash_password(password)
+
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+
+            cursor.execute(
+                "SELECT UserID FROM `User` WHERE Username = %s OR Email = %s",
+                (username, email)
+            )
+            existing_user = cursor.fetchone()
+
+            if existing_user:
+                cursor.close()
+                connection.close()
+                flash("Username or email already exists.")
+                return redirect(url_for("register"))
+
+            cursor.execute(
+                """
+                INSERT INTO `User` (Username, Email, PasswordHash, DisplayName, Role)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (username, email, password_hash, display_name, "tourist")
+            )
+            connection.commit()
+
+            cursor.close()
+            connection.close()
+
+            flash("Registration successful. Please log in.")
+            return redirect(url_for("login"))
+
+        return render_template("register.html")
 
     @app.route("/debug/places")
     def debug_places():
