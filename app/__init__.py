@@ -106,6 +106,24 @@ def create_app():
         session.clear()
         flash("You have been logged out.")
         return redirect(url_for("login"))
+    
+    @app.route("/places")
+    def places():
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT PlaceID, Name, Address, AvgRating, IsActive
+            FROM Place
+            WHERE IsActive = TRUE
+            ORDER BY Name ASC
+        """)
+        places = cursor.fetchall()
+
+        cursor.close()
+        connection.close()
+
+        return render_template("places.html", places=places)
 
     @app.route("/debug/places")
     def debug_places():
