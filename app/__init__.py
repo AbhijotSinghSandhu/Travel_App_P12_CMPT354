@@ -100,6 +100,12 @@ def create_app():
             return redirect(url_for("login"))
 
         return render_template("login.html")
+    
+    @app.route("/logout")
+    def logout():
+        session.clear()
+        flash("You have been logged out.")
+        return redirect(url_for("login"))
 
     @app.route("/debug/places")
     def debug_places():
