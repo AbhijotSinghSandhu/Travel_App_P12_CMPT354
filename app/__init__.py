@@ -124,6 +124,38 @@ def create_app():
         connection.close()
 
         return render_template("places.html", places=places)
+    
+    @app.route("/places/<int:place_id>")
+    def place_detail(place_id):
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT PlaceID, Name, Description, Address, Hours, ContactInfo, Website, AvgRating, IsActive
+            FROM Place
+            WHERE PlaceID = %s AND IsActive = TRUE
+        """, (place_id,))
+        place = cursor.fetchone()
+
+        if not place:
+            cursor.close()
+            connection.close()
+            flash("Place not found.")
+            return redirect(url_for("places"))
+
+        cursor.execute("""
+            SELECT c.TagName
+            FROM Category c
+            JOIN PlaceCategory pc ON c.CategoryID = pc.CategoryID
+            WHERE pc.PlaceID = %s
+            ORDER BY c.TagName ASC
+        """, (place_id,))
+        categories = cursor.fetchall()
+
+        cursor.close()
+        connection.close()
+
+        return render_template("place_detail.html", place=place, categories=categories)
 
     @app.route("/debug/places")
     def debug_places():
