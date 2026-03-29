@@ -36,3 +36,34 @@ To verify the schema in MySQL:
 USE travel_app;
 SHOW TABLES;
 ```
+
+## Seed Data Setup
+
+1. After creating the schema, populate the database with sample data by running:
+
+```
+mysql -u root -p < sql/seed.sql
+```
+This script inserts:
+
+- sample users
+
+- Vancouver places
+
+- categories and place-category mappings
+
+- reviews
+
+- trip lists and trip list items
+
+2. To verify the data in MySQL:
+```
+USE travel_app;
+SELECT * FROM User;
+SELECT * FROM Place;
+SELECT * FROM Category;
+SELECT * FROM Review;
+SELECT * FROM TripList;
+SELECT * FROM TripListItem;
+SELECT * FROM PlaceCategory;
+```
