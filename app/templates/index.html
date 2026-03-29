@@ -8,5 +8,23 @@
 <body>
     <h1>Travel App</h1>
     <p>A Vancouver-focused travel discovery and review web application.</p>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    {% if session.get("user_id") %}
+        <p>Logged in as {{ session.get("username") }}</p>
+        <p><a href="/logout">Logout</a></p>
+    {% else %}
+        <p><a href="/register">Register</a></p>
+        <p><a href="/login">Login</a></p>
+    {% endif %}
 </body>
 </html>
