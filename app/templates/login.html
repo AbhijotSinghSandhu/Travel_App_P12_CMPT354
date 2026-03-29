@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Travel App</title>
+    <title>Login</title>
 </head>
 <body>
-    <h1>Travel App</h1>
-    <p>A Vancouver-focused travel discovery and review web application.</p>
+    <h1>Login</h1>
 
     {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -19,12 +18,16 @@
         {% endif %}
     {% endwith %}
 
-    {% if session.get("user_id") %}
-        <p>Logged in as {{ session.get("username") }}</p>
-        <p><a href="/logout">Logout</a></p>
-    {% else %}
-        <p><a href="/register">Register</a></p>
-        <p><a href="/login">Login</a></p>
-    {% endif %}
+    <form method="POST" action="/login">
+        <label>Email:</label><br>
+        <input type="email" name="email" required><br><br>
+
+        <label>Password:</label><br>
+        <input type="password" name="password" required><br><br>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <p><a href="/register">Create an account</a></p>
 </body>
 </html>
