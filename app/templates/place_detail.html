@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ place.Name }}</title>
+</head>
+<body>
+    <h1>{{ place.Name }}</h1>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <p><strong>Address:</strong> {{ place.Address }}</p>
+    <p><strong>Description:</strong> {{ place.Description or "No description available." }}</p>
+    <p><strong>Hours:</strong> {{ place.Hours or "Not provided" }}</p>
+    <p><strong>Contact Info:</strong> {{ place.ContactInfo or "Not provided" }}</p>
+    <p><strong>Website:</strong>
+        {% if place.Website %}
+            <a href="{{ place.Website }}" target="_blank">{{ place.Website }}</a>
+        {% else %}
+            Not provided
+        {% endif %}
+    </p>
+    <p><strong>Average Rating:</strong> {{ place.AvgRating }}</p>
+
+    <p><strong>Categories:</strong></p>
+    {% if categories %}
+        <ul>
+            {% for category in categories %}
+                <li>{{ category.TagName }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No categories assigned.</p>
+    {% endif %}
+
+    <p><a href="/places">Back to Places</a></p>
+</body>
+</html>
