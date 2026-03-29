@@ -54,3 +54,42 @@ INSERT INTO PlaceCategory (PlaceID, CategoryID) VALUES
 (7, 5), -- Fairmont -> Hotel
 (8, 4), -- Science World -> Museum
 (8, 7); -- Science World -> Attraction
+
+-- Sample reviews
+INSERT INTO Review (UserID, PlaceID, Rating, Title, Body) VALUES
+(1, 1, 5, 'Amazing day out', 'Beautiful views and a great walk along the seawall.'),
+(2, 1, 4, 'Relaxing and scenic', 'Very nice park, but parking was a bit hard to find.'),
+(1, 2, 5, 'Loved the market', 'Great variety of food and a lively atmosphere.'),
+(2, 3, 4, 'Nice gallery visit', 'Interesting exhibits and a convenient downtown location.'),
+(1, 6, 5, 'Excellent brunch', 'The waffles were great and service was quick.'),
+(2, 8, 4, 'Fun for families', 'Interactive exhibits made it a fun afternoon.');
+
+-- Sample trip lists
+INSERT INTO TripList (UserID, Title, Description, IsPublic) VALUES
+(1, 'Best First-Time Vancouver Spots', 'Places I would recommend to first-time visitors.', TRUE),
+(2, 'Weekend Indoor Ideas', 'Good options for rainy Vancouver weekends.', TRUE),
+(1, 'Food and Views Day Plan', 'A simple one-day list with food and scenic stops.', FALSE);
+
+-- Trip list items
+INSERT INTO TripListItem (ListID, PlaceID, Position, Note) VALUES
+(1, 1, 1, 'Start the morning with a seawall walk.'),
+(1, 2, 2, 'Grab lunch here after Stanley Park.'),
+(1, 4, 3, 'Visit in the afternoon for the bridge views.'),
+(2, 3, 1, 'Good downtown indoor stop.'),
+(2, 8, 2, 'Great choice for a rainy day.'),
+(2, 5, 3, 'Shopping and food options nearby.'),
+(3, 6, 1, 'Breakfast stop.'),
+(3, 1, 2, 'Scenic walk after brunch.');
+
+UPDATE Place p
+SET AvgRating = (
+    SELECT ROUND(AVG(r.Rating), 1)
+    FROM Review r
+    WHERE r.PlaceID = p.PlaceID
+)
+WHERE EXISTS (
+    SELECT 1
+    FROM Review r
+    WHERE r.PlaceID = p.PlaceID
+);
+
