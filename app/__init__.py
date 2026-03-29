@@ -27,5 +27,18 @@ def create_app():
             return {"status": "ok", "database": "connected"}
         except Exception as e:
             return {"status": "error", "database": str(e)}, 500
+        
+    @app.route("/debug/places")
+    def debug_places():
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("SELECT PlaceID, Name, AvgRating, IsActive FROM Place")
+        places = cursor.fetchall()
+
+        cursor.close()
+        connection.close()
+
+        return render_template("debug_places.html", places=places)
 
     return app
