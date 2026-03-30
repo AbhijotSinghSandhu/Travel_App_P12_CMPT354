@@ -436,6 +436,29 @@ def create_app():
 
         return render_template("create_list.html")
     
+    @app.route("/lists/<int:list_id>")
+    def trip_list_detail(list_id):
+        if not session.get("user_id"):
+            flash("You must be logged in to view trip lists.")
+            return redirect(url_for("login"))
+
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT ListID, UserID, Title, Description, IsPublic, CreatedAt
+            FROM TripList
+            WHERE ListID = %s
+        """, (list_id,))
+        trip_list = cursor.fetchone()
+
+        if not trip_list:
+            cursor.close()
+            connection.close()
+            flash("Trip list not found.")
+            return redirect(url_for("my_lists"))
+
+    
     @app.route("/debug/users")
     def debug_users():
         connection = get_db_connection()
