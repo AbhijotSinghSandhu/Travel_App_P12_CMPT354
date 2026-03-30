@@ -42,6 +42,25 @@
         <p>No categories assigned.</p>
     {% endif %}
 
+    <hr>
+
+    <h2>Reviews</h2>
+
+    {% if reviews %}
+        {% for review in reviews %}
+            <div>
+                <p><strong>{{ review.DisplayName }}</strong> ({{ review.Username }})</p>
+                <p><strong>Rating:</strong> {{ review.Rating }}/5</p>
+                <p><strong>Title:</strong> {{ review.Title or "No title" }}</p>
+                <p>{{ review.Body or "No review text." }}</p>
+                <p><small>Created: {{ review.CreatedAt }}</small></p>
+            </div>
+            <hr>
+        {% endfor %}
+    {% else %}
+        <p>No reviews yet.</p>
+    {% endif %}
+
     <p><a href="/places">Back to Places</a></p>
 </body>
 </html>

@@ -134,6 +134,16 @@ def create_app():
         """, (place_id,))
         categories = cursor.fetchall()
 
+        cursor.execute("""
+            SELECT r.ReviewID, r.Rating, r.Title, r.Body, r.CreatedAt, r.UpdatedAt,
+                   u.UserID, u.Username, u.DisplayName
+            FROM Review r
+            JOIN `User` u ON r.UserID = u.UserID
+            WHERE r.PlaceID = %s
+            ORDER BY r.CreatedAt DESC
+        """, (place_id,))
+        reviews = cursor.fetchall()
+
         cursor.close()
         connection.close()
 
