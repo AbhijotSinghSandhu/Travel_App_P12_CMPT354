@@ -468,7 +468,27 @@ def create_app():
             connection.close()
             flash("Trip list not found.")
             return redirect(url_for("my_lists"))
-        
+        if trip_list["UserID"] != session["user_id"]:
+            cursor.close()
+            connection.close()
+            flash("You can only view your own trip lists right now.")
+            return redirect(url_for("my_lists"))
+
+        cursor.execute("""
+            SELECT tli.ListID, tli.PlaceID, tli.Position, tli.Note,
+                p.Name, p.Address, p.AvgRating
+            FROM TripListItem tli
+            JOIN Place p ON tli.PlaceID = p.PlaceID
+            WHERE tli.ListID = %s
+            ORDER BY tli.Position ASC
+        """, (list_id,))
+        items = cursor.fetchall()
+
+        cursor.close()
+        connection.close()
+
+        return render_template("trip_list_detail.html", trip_list=trip_list, items=items)
+            
     @app.route("/places/<int:place_id>/add-to-list", methods=["POST"])
     def add_place_to_list(place_id):
         if not session.get("user_id"):
