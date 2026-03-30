@@ -147,7 +147,12 @@ def create_app():
         cursor.close()
         connection.close()
 
-        return render_template("place_detail.html", place=place, categories=categories)
+        return render_template(
+            "place_detail.html",
+            place=place,
+            categories=categories,
+            reviews=reviews
+        )
 
     @app.route("/places")
     def places():
