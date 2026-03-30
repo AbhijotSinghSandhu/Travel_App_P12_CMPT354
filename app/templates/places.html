@@ -45,7 +45,17 @@
 
     <hr>
 
+    {% if search_query or selected_category %}
+        <p><strong>Current filters:</strong></p>
+        <ul>
+            <li>Search: {{ search_query if search_query else "None" }}</li>
+            <li>Category: {{ selected_category if selected_category else "All Categories" }}</li>
+        </ul>
+    {% endif %}
+
     {% if places %}
+        <p>{{ places|length }} active place(s) found.</p>
+
         <ul>
             {% for place in places %}
                 <li>
