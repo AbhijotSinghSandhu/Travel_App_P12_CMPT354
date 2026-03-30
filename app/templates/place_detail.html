@@ -44,6 +44,28 @@
 
     <hr>
 
+    <hr>
+
+    <h2>Write a Review</h2>
+
+    {% if session.get("user_id") %}
+        <form method="POST" action="/places/{{ place.PlaceID }}/reviews/create">
+            <label for="rating">Rating (1-5):</label><br>
+            <input type="number" id="rating" name="rating" min="1" max="5" required><br><br>
+
+            <label for="title">Title:</label><br>
+            <input type="text" id="title" name="title"><br><br>
+
+            <label for="body">Review:</label><br>
+            <textarea id="body" name="body" rows="4" cols="50"></textarea><br><br>
+
+            <button type="submit">Submit Review</button>
+        </form>
+    {% else %}
+        <p>You must be logged in to write a review.</p>
+        <p><a href="/login">Login</a></p>
+    {% endif %}
+
     <h2>Reviews</h2>
 
     {% if reviews %}

@@ -198,6 +198,75 @@ def create_app():
             search_query=search
         )
     
+    def update_place_avg_rating(place_id):
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            UPDATE Place
+            SET AvgRating = (
+                SELECT COALESCE(ROUND(AVG(Rating), 1), 0.0)
+                FROM Review
+                WHERE PlaceID = %s
+            )
+            WHERE PlaceID = %s
+        """, (place_id, place_id))
+
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+    @app.route("/places/<int:place_id>/reviews/create", methods=["POST"])
+    def create_review(place_id):
+        if not session.get("user_id"):
+            flash("You must be logged in to submit a review.")
+            return redirect(url_for("login"))
+
+        rating = request.form.get("rating", "").strip()
+        title = request.form.get("title", "").strip()
+        body = request.form.get("body", "").strip()
+        user_id = session["user_id"]
+
+        try:
+            rating = int(rating)
+        except ValueError:
+            flash("Rating must be a number between 1 and 5.")
+            return redirect(url_for("place_detail", place_id=place_id))
+
+        if rating < 1 or rating > 5:
+            flash("Rating must be between 1 and 5.")
+            return redirect(url_for("place_detail", place_id=place_id))
+
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT ReviewID
+            FROM Review
+            WHERE UserID = %s AND PlaceID = %s
+        """, (user_id, place_id))
+        existing_review = cursor.fetchone()
+
+        if existing_review:
+            cursor.close()
+            connection.close()
+            flash("You have already reviewed this place.")
+            return redirect(url_for("place_detail", place_id=place_id))
+
+        cursor.execute("""
+            INSERT INTO Review (UserID, PlaceID, Rating, Title, Body)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (user_id, place_id, rating, title, body))
+        connection.commit()
+
+        cursor.close()
+        connection.close()
+
+        update_place_avg_rating(place_id)
+
+        flash("Review created successfully.")
+        return redirect(url_for("place_detail", place_id=place_id))
+    
     @app.route("/debug/users")
     def debug_users():
         connection = get_db_connection()
