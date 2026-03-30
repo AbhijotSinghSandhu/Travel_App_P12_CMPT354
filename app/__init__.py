@@ -382,6 +382,60 @@ def create_app():
         flash("Review deleted successfully.")
         return redirect(url_for("place_detail", place_id=place_id))
     
+    @app.route("/lists")
+    def my_lists():
+        if not session.get("user_id"):
+            flash("You must be logged in to view your trip lists.")
+            return redirect(url_for("login"))
+
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT ListID, Title, Description, IsPublic, CreatedAt
+            FROM TripList
+            WHERE UserID = %s
+            ORDER BY CreatedAt DESC
+        """, (session["user_id"],))
+        trip_lists = cursor.fetchall()
+
+        cursor.close()
+        connection.close()
+
+        return render_template("trip_lists.html", trip_lists=trip_lists)
+
+    @app.route("/lists/create", methods=["GET", "POST"])
+    def create_list():
+        if not session.get("user_id"):
+            flash("You must be logged in to create a trip list.")
+            return redirect(url_for("login"))
+
+        if request.method == "POST":
+            title = request.form.get("title", "").strip()
+            description = request.form.get("description", "").strip()
+            is_public = 1 if request.form.get("is_public") == "on" else 0
+
+            if not title:
+                flash("Title is required.")
+                return redirect(url_for("create_list"))
+
+            connection = get_db_connection()
+            cursor = connection.cursor()
+
+            cursor.execute("""
+                INSERT INTO TripList (UserID, Title, Description, IsPublic)
+                VALUES (%s, %s, %s, %s)
+            """, (session["user_id"], title, description, is_public))
+            connection.commit()
+
+            cursor.close()
+            connection.close()
+
+            flash("Trip list created successfully.")
+            return redirect(url_for("my_lists"))
+
+        return render_template("create_list.html")
+    
     @app.route("/debug/users")
     def debug_users():
         connection = get_db_connection()
