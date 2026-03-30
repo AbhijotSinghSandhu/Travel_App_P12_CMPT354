@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Trip Lists</title>
+</head>
+<body>
+    <h1>My Trip Lists</h1>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <p><a href="/lists/create">Create New Trip List</a></p>
+
+    {% if trip_lists %}
+        <ul>
+            {% for trip_list in trip_lists %}
+                <li>
+                    <a href="/lists/{{ trip_list.ListID }}">{{ trip_list.Title }}</a><br>
+                    Description: {{ trip_list.Description or "No description" }}<br>
+                    Public: {{ "Yes" if trip_list.IsPublic else "No" }}
+                </li>
+                <br>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>You have no trip lists yet.</p>
+    {% endif %}
+
+    <p><a href="/">Back to Home</a></p>
+</body>
+</html>

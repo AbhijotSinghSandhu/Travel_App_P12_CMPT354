@@ -44,6 +44,35 @@
 
     <hr>
 
+    <h2>Add to Trip List</h2>
+
+    {% if session.get("user_id") %}
+        {% if user_trip_lists %}
+            <form method="POST" action="/places/{{ place.PlaceID }}/add-to-list">
+                <label for="list_id">Select Trip List:</label><br>
+                <select id="list_id" name="list_id" required>
+                    <option value="">Choose a list</option>
+                    {% for trip_list in user_trip_lists %}
+                        <option value="{{ trip_list.ListID }}">{{ trip_list.Title }}</option>
+                    {% endfor %}
+                </select><br><br>
+
+                <label for="note">Note:</label><br>
+                <textarea id="note" name="note" rows="3" cols="40"></textarea><br><br>
+
+                <button type="submit">Add to List</button>
+            </form>
+        {% else %}
+            <p>You do not have any trip lists yet.</p>
+            <p><a href="/lists/create">Create a Trip List</a></p>
+        {% endif %}
+    {% else %}
+        <p>You must be logged in to add places to a trip list.</p>
+        <p><a href="/login">Login</a></p>
+    {% endif %}
+
+    <hr>
+
     <h2>Write a Review</h2>
     
     <p>Each user can submit only one review per place.</p>
