@@ -18,7 +18,44 @@
         {% endif %}
     {% endwith %}
 
+    <form method="GET" action="/places">
+        <label for="search">Search by place name:</label><br>
+        <input
+            type="text"
+            id="search"
+            name="search"
+            value="{{ search_query }}"
+            placeholder="Enter place name"
+        ><br><br>
+
+        <label for="category">Filter by category:</label><br>
+        <select id="category" name="category">
+            <option value="">All Categories</option>
+            {% for category in categories %}
+                <option value="{{ category.TagName }}"
+                    {% if selected_category == category.TagName %}selected{% endif %}>
+                    {{ category.TagName }}
+                </option>
+            {% endfor %}
+        </select><br><br>
+
+        <button type="submit">Apply Filters</button>
+        <a href="/places">Clear</a>
+    </form>
+
+    <hr>
+
+    {% if search_query or selected_category %}
+        <p><strong>Current filters:</strong></p>
+        <ul>
+            <li>Search: {{ search_query if search_query else "None" }}</li>
+            <li>Category: {{ selected_category if selected_category else "All Categories" }}</li>
+        </ul>
+    {% endif %}
+
     {% if places %}
+        <p>{{ places|length }} active place(s) found.</p>
+
         <ul>
             {% for place in places %}
                 <li>
@@ -30,7 +67,7 @@
             {% endfor %}
         </ul>
     {% else %}
-        <p>No active places found.</p>
+        <p>No matching active places found.</p>
     {% endif %}
 
     <p><a href="/">Back to Home</a></p>

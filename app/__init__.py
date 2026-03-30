@@ -107,24 +107,6 @@ def create_app():
         flash("You have been logged out.")
         return redirect(url_for("login"))
     
-    @app.route("/places")
-    def places():
-        connection = get_db_connection()
-        cursor = connection.cursor(dictionary=True)
-
-        cursor.execute("""
-            SELECT PlaceID, Name, Address, AvgRating, IsActive
-            FROM Place
-            WHERE IsActive = TRUE
-            ORDER BY Name ASC
-        """)
-        places = cursor.fetchall()
-
-        cursor.close()
-        connection.close()
-
-        return render_template("places.html", places=places)
-    
     @app.route("/places/<int:place_id>")
     def place_detail(place_id):
         connection = get_db_connection()
@@ -157,19 +139,55 @@ def create_app():
 
         return render_template("place_detail.html", place=place, categories=categories)
 
-    @app.route("/debug/places")
-    def debug_places():
+    @app.route("/places")
+    def places():
+        search = request.args.get("search", "").strip()
+        category = request.args.get("category", "").strip()
+
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        cursor.execute("SELECT PlaceID, Name, AvgRating, IsActive FROM Place")
+        category_query = """
+            SELECT TagName
+            FROM Category
+            ORDER BY TagName ASC
+        """
+        cursor.execute(category_query)
+        categories = cursor.fetchall()
+
+        places_query = """
+            SELECT DISTINCT p.PlaceID, p.Name, p.Address, p.AvgRating, p.IsActive
+            FROM Place p
+            LEFT JOIN PlaceCategory pc ON p.PlaceID = pc.PlaceID
+            LEFT JOIN Category c ON pc.CategoryID = c.CategoryID
+            WHERE p.IsActive = TRUE
+        """
+        params = []
+
+        if search:
+            places_query += " AND p.Name LIKE %s"
+            params.append(f"%{search}%")
+
+        if category:
+            places_query += " AND c.TagName = %s"
+            params.append(category)
+
+        places_query += " ORDER BY p.Name ASC"
+
+        cursor.execute(places_query, tuple(params))
         places = cursor.fetchall()
 
         cursor.close()
         connection.close()
 
-        return render_template("debug_places.html", places=places)
-
+        return render_template(
+            "places.html",
+            places=places,
+            categories=categories,
+            selected_category=category,
+            search_query=search
+        )
+    
     @app.route("/debug/users")
     def debug_users():
         connection = get_db_connection()
