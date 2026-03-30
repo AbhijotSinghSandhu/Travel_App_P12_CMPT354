@@ -76,6 +76,11 @@
                 <p><strong>Title:</strong> {{ review.Title or "No title" }}</p>
                 <p>{{ review.Body or "No review text." }}</p>
                 <p><small>Created: {{ review.CreatedAt }}</small></p>
+                {% if session.get("user_id") == review.UserID %}
+                    <p>
+                        <a href="/reviews/{{ review.ReviewID }}/edit">Edit</a>
+                    </p>
+                {% endif %}
             </div>
             <hr>
         {% endfor %}
