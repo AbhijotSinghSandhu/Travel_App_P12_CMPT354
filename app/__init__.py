@@ -336,6 +336,47 @@ def create_app():
 
         return render_template("edit_review.html", review=review)
     
+    @app.route("/reviews/<int:review_id>/delete", methods=["POST"])
+    def delete_review(review_id):
+        if not session.get("user_id"):
+            flash("You must be logged in to delete a review.")
+            return redirect(url_for("login"))
+
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT ReviewID, UserID, PlaceID
+            FROM Review
+            WHERE ReviewID = %s
+        """, (review_id,))
+        review = cursor.fetchone()
+
+        if not review:
+            cursor.close()
+            connection.close()
+            flash("Review not found.")
+            return redirect(url_for("places"))
+
+        if review["UserID"] != session["user_id"]:
+            cursor.close()
+            connection.close()
+            flash("You can only delete your own reviews.")
+            return redirect(url_for("place_detail", place_id=review["PlaceID"]))
+
+        place_id = review["PlaceID"]
+
+        cursor.execute("DELETE FROM Review WHERE ReviewID = %s", (review_id,))
+        connection.commit()
+
+        cursor.close()
+        connection.close()
+
+        update_place_avg_rating(place_id)
+
+        flash("Review deleted successfully.")
+        return redirect(url_for("place_detail", place_id=place_id))
+    
     @app.route("/debug/users")
     def debug_users():
         connection = get_db_connection()

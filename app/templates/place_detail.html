@@ -80,6 +80,9 @@
                     <p>
                         <a href="/reviews/{{ review.ReviewID }}/edit">Edit</a>
                     </p>
+                    <form method="POST" action="/reviews/{{ review.ReviewID }}/delete">
+                        <button type="submit">Delete</button>
+                    </form>
                 {% endif %}
             </div>
             <hr>
