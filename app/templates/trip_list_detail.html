@@ -31,7 +31,10 @@
                     <a href="/places/{{ item.PlaceID }}">{{ item.Name }}</a><br>
                     Address: {{ item.Address }}<br>
                     Avg Rating: {{ item.AvgRating }}<br>
-                    Note: {{ item.Note or "No note" }}
+                    Note: {{ item.Note or "No note" }}<br>
+                    <form method="POST" action="/lists/{{ trip_list.ListID }}/remove/{{ item.PlaceID }}">
+                        <button type="submit">Remove from List</button>
+                    </form>
                 </li>
                 <br>
             {% endfor %}

@@ -530,6 +530,40 @@ def create_app():
 
         flash("Place added to trip list.")
         return redirect(url_for("place_detail", place_id=place_id))
+    
+    @app.route("/lists/<int:list_id>/remove/<int:place_id>", methods=["POST"])
+    def remove_place_from_list(list_id, place_id):
+        if not session.get("user_id"):
+            flash("You must be logged in to modify a trip list.")
+            return redirect(url_for("login"))
+
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT ListID, UserID
+            FROM TripList
+            WHERE ListID = %s
+        """, (list_id,))
+        trip_list = cursor.fetchone()
+
+        if not trip_list or trip_list["UserID"] != session["user_id"]:
+            cursor.close()
+            connection.close()
+            flash("You can only modify your own trip lists.")
+            return redirect(url_for("my_lists"))
+
+        cursor.execute("""
+            DELETE FROM TripListItem
+            WHERE ListID = %s AND PlaceID = %s
+        """, (list_id, place_id))
+        connection.commit()
+
+        cursor.close()
+        connection.close()
+
+        flash("Place removed from trip list.")
+        return redirect(url_for("trip_list_detail", list_id=list_id))
 
     
     @app.route("/debug/users")
