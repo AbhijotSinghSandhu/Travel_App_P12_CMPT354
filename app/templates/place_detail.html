@@ -44,9 +44,9 @@
 
     <hr>
 
-    <hr>
-
     <h2>Write a Review</h2>
+    
+    <p>Each user can submit only one review per place.</p>
 
     {% if session.get("user_id") %}
         <form method="POST" action="/places/{{ place.PlaceID }}/reviews/create">
@@ -76,6 +76,8 @@
                 <p><strong>Title:</strong> {{ review.Title or "No title" }}</p>
                 <p>{{ review.Body or "No review text." }}</p>
                 <p><small>Created: {{ review.CreatedAt }}</small></p>
+                <p><small>Updated: {{ review.UpdatedAt }}</small></p>
+
                 {% if session.get("user_id") == review.UserID %}
                     <p>
                         <a href="/reviews/{{ review.ReviewID }}/edit">Edit</a>
