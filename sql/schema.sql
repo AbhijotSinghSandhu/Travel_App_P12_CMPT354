@@ -1,6 +1,8 @@
 CREATE DATABASE IF NOT EXISTS travel_app;
 USE travel_app;
 
+DROP TABLE IF EXISTS PlacePhoto;
+DROP TABLE IF EXISTS PlaceClaimRequest;
 DROP TABLE IF EXISTS PlaceCategory;
 DROP TABLE IF EXISTS TripListItem;
 DROP TABLE IF EXISTS Review;
@@ -29,7 +31,11 @@ CREATE TABLE Place (
     ContactInfo VARCHAR(100),
     Website VARCHAR(255),
     AvgRating DECIMAL(2,1) DEFAULT 0.0,
-    IsActive BOOLEAN DEFAULT TRUE
+    IsActive BOOLEAN DEFAULT TRUE,
+    CreatedByUserID INT NULL,
+    ClaimedByUserID INT NULL,
+    FOREIGN KEY (CreatedByUserID) REFERENCES User(UserID),
+    FOREIGN KEY (ClaimedByUserID) REFERENCES User(UserID)
 );
 
 CREATE TABLE Review (
@@ -41,6 +47,7 @@ CREATE TABLE Review (
     Body TEXT,
     CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    IsVisible BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (UserID) REFERENCES User(UserID),
     FOREIGN KEY (PlaceID) REFERENCES Place(PlaceID),
     CHECK (Rating BETWEEN 1 AND 5),
@@ -78,4 +85,35 @@ CREATE TABLE PlaceCategory (
     PRIMARY KEY (PlaceID, CategoryID),
     FOREIGN KEY (PlaceID) REFERENCES Place(PlaceID),
     FOREIGN KEY (CategoryID) REFERENCES Category(CategoryID)
+);
+
+CREATE TABLE PlaceClaimRequest (
+    ClaimID INT PRIMARY KEY AUTO_INCREMENT,
+    PlaceID INT NOT NULL,
+    UserID INT NOT NULL,
+    Message TEXT,
+    Status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ReviewedAt DATETIME NULL,
+    ReviewedByUserID INT NULL,
+    FOREIGN KEY (PlaceID) REFERENCES Place(PlaceID),
+    FOREIGN KEY (UserID) REFERENCES User(UserID),
+    FOREIGN KEY (ReviewedByUserID) REFERENCES User(UserID),
+    CHECK (Status IN ('pending', 'approved', 'rejected'))
+);
+
+CREATE TABLE PlacePhoto (
+    PhotoID INT PRIMARY KEY AUTO_INCREMENT,
+    PlaceID INT NOT NULL,
+    UserID INT NOT NULL,
+    PhotoURL VARCHAR(500) NOT NULL,
+    Caption VARCHAR(255),
+    Status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ModeratedAt DATETIME NULL,
+    ModeratedByUserID INT NULL,
+    FOREIGN KEY (PlaceID) REFERENCES Place(PlaceID),
+    FOREIGN KEY (UserID) REFERENCES User(UserID),
+    FOREIGN KEY (ModeratedByUserID) REFERENCES User(UserID),
+    CHECK (Status IN ('pending', 'approved', 'rejected'))
 );

@@ -66,6 +66,7 @@ def register_auth_routes(app):
             if user and verify_password(password, user["PasswordHash"]):
                 session["user_id"] = user["UserID"]
                 session["username"] = user["Username"]
+                session["display_name"] = user["DisplayName"]
                 session["role"] = user["Role"]
                 flash("Login successful.")
                 return redirect(url_for("home"))

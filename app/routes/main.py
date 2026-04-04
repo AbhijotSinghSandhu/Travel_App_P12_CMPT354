@@ -1,10 +1,11 @@
 from flask import render_template
 from app.db import get_db_connection
 
+
 def register_main_routes(app):
     @app.route("/")
     def home():
-        return render_template("index.html")
+        return render_template("spa.html")
 
     @app.route("/health")
     def health():

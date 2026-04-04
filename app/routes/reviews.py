@@ -10,7 +10,7 @@ def update_place_avg_rating(place_id):
         SET AvgRating = (
             SELECT COALESCE(ROUND(AVG(Rating), 1), 0.0)
             FROM Review
-            WHERE PlaceID = %s
+            WHERE PlaceID = %s AND IsVisible = TRUE
         )
         WHERE PlaceID = %s
     """, (place_id, place_id))

@@ -20,11 +20,13 @@ def create_app():
     from app.routes.places import register_place_routes
     from app.routes.reviews import register_review_routes
     from app.routes.trip_lists import register_trip_list_routes
+    from app.routes.api import register_api_routes
 
     register_main_routes(app)
     register_auth_routes(app)
     register_place_routes(app)
     register_review_routes(app)
     register_trip_list_routes(app)
+    register_api_routes(app)
 
     return app
