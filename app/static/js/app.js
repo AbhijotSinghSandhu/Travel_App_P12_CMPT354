@@ -649,7 +649,7 @@ function App() {
         </div>
 
         <div className="stack">
-          <div className="panel">
+          <div className="panel featured">
             {selectedPlace ? (
               <>
                 <div className="row-between">
