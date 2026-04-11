@@ -51,6 +51,11 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
+    max-width: none;
+    padding: 24px;
+    background:
+        linear-gradient(180deg, rgba(13, 31, 55, 0.2), rgba(13, 31, 55, 0.28)),
+        url("../images/vancouver-login-bg.jpeg") center/cover no-repeat;
 }
 
 .hero {
@@ -66,6 +71,12 @@ button {
     grid-template-columns: minmax(0, 760px);
     justify-content: center;
     margin-bottom: 0;
+}
+
+.home-shell .hero-card {
+    background: rgba(248, 251, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    box-shadow: 0 24px 60px rgba(18, 30, 48, 0.22);
 }
 
 .hero-card,
