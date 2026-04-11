@@ -187,4 +187,3 @@ SELECT * FROM PlacePhoto;
 
 - The app runs in debug mode through `run.py`
 - The default local host is `127.0.0.1:5001`
-- Screenshots in this README are stored in `docs/images/`
