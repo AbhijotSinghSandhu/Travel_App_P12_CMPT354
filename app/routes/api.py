@@ -1030,33 +1030,30 @@ def register_api_routes(app):
             return json_error("Title is required.")
 
         connection = get_db_connection()
-        read_cursor = connection.cursor(dictionary=True)
-        read_cursor.execute(
-            "SELECT UserID FROM `User` WHERE UserID = %s",
-            (session["user_id"],),
-        )
-        existing_user = read_cursor.fetchone()
-        read_cursor.close()
 
-        if not existing_user:
+        try:
+            with connection.cursor(dictionary=True) as cursor:
+                cursor.execute("SELECT UserID FROM `User` WHERE UserID = %s", (session["user_id"],))
+                existing_user = cursor.fetchone()
+
+                if not existing_user:
+                    session.clear()
+                    return json_error("Your session is no longer valid. Please log in again.", 401)
+
+                cursor.execute(
+                    """
+                    INSERT INTO TripList (UserID, Title, Description, IsPublic)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (session["user_id"], title, description, is_public),
+                )
+                connection.commit()
+                list_id = cursor.lastrowid
+
+            return jsonify({"message": "Trip list created successfully.", "list_id": list_id}), 201
+
+        finally:
             connection.close()
-            session.clear()
-            return json_error("Your session is no longer valid. Please log in again.", 401)
-
-        write_cursor = connection.cursor()
-        write_cursor.execute(
-            """
-            INSERT INTO TripList (UserID, Title, Description, IsPublic)
-            VALUES (%s, %s, %s, %s)
-            """,
-            (session["user_id"], title, description, is_public),
-        )
-        connection.commit()
-        list_id = write_cursor.lastrowid
-        write_cursor.close()
-        connection.close()
-
-        return jsonify({"message": "Trip list created successfully.", "list_id": list_id}), 201
 
     @app.get("/api/lists/<int:list_id>")
     def api_trip_list_detail(list_id):
