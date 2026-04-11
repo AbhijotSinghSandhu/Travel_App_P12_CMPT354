@@ -612,7 +612,19 @@ def register_api_routes(app):
         is_active = bool(payload.get("is_active"))
 
         connection = get_db_connection()
-        cursor = connection.cursor()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT PlaceID FROM Place WHERE PlaceID = %s",
+            (place_id,),
+        )
+        place = cursor.fetchone()
+
+        if not place:
+            cursor.close()
+            connection.close()
+            return json_error("Place not found.", 404)
+        
         cursor.execute(
             """
             UPDATE Place
@@ -761,6 +773,18 @@ def register_api_routes(app):
 
         connection = get_db_connection()
         cursor = connection.cursor()
+
+        cursor.execute(
+            "SELECT PlaceID FROM Place WHERE PlaceID = %s",
+            (place_id,),
+        )
+        place = cursor.fetchone()
+
+        if not place:
+            cursor.close()
+            connection.close()
+            return json_error("Place not found.", 404)
+        
         cursor.execute(
             """
             INSERT INTO PlacePhoto (PlaceID, UserID, PhotoURL, Caption)
@@ -786,21 +810,32 @@ def register_api_routes(app):
             return json_error("Status must be approved or rejected.")
 
         connection = get_db_connection()
-        cursor = connection.cursor()
-        cursor.execute(
-            """
-            UPDATE PlacePhoto
-            SET Status = %s,
-                ModeratedAt = CURRENT_TIMESTAMP,
-                ModeratedByUserID = %s
-            WHERE PhotoID = %s
-            """,
-            (status, session["user_id"], photo_id),
-        )
-        connection.commit()
-        cursor.close()
-        connection.close()
-        return jsonify({"message": "Photo moderation updated."})
+        try:
+            with connection.cursor(dictionary=True) as cursor:
+                cursor.execute(
+                    "SELECT PhotoID FROM PlacePhoto WHERE PhotoID = %s",
+                    (photo_id,),
+                )
+                photo = cursor.fetchone()
+
+                if not photo:
+                    return json_error("Photo not found.", 404)
+
+                cursor.execute(
+                    """
+                    UPDATE PlacePhoto
+                    SET Status = %s,
+                        ModeratedAt = CURRENT_TIMESTAMP,
+                        ModeratedByUserID = %s
+                    WHERE PhotoID = %s
+                    """,
+                    (status, session["user_id"], photo_id),
+                )
+                connection.commit()
+
+            return jsonify({"message": "Photo moderation updated."})
+        finally:
+            connection.close()
 
     @app.post("/api/places/<int:place_id>/reviews")
     def api_create_review(place_id):
@@ -823,6 +858,19 @@ def register_api_routes(app):
 
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
+
+        # verify if place exist check
+        cursor.execute(
+            "SELECT PlaceID FROM Place WHERE PlaceID = %s",
+            (place_id,),
+        )
+        place = cursor.fetchone()
+
+        if not place:
+            cursor.close()
+            connection.close()
+            return json_error("Place not found.", 404)
+        
         cursor.execute(
             """
             SELECT ReviewID
@@ -1030,33 +1078,30 @@ def register_api_routes(app):
             return json_error("Title is required.")
 
         connection = get_db_connection()
-        read_cursor = connection.cursor(dictionary=True)
-        read_cursor.execute(
-            "SELECT UserID FROM `User` WHERE UserID = %s",
-            (session["user_id"],),
-        )
-        existing_user = read_cursor.fetchone()
-        read_cursor.close()
 
-        if not existing_user:
+        try:
+            with connection.cursor(dictionary=True) as cursor:
+                cursor.execute("SELECT UserID FROM `User` WHERE UserID = %s", (session["user_id"],))
+                existing_user = cursor.fetchone()
+
+                if not existing_user:
+                    session.clear()
+                    return json_error("Your session is no longer valid. Please log in again.", 401)
+
+                cursor.execute(
+                    """
+                    INSERT INTO TripList (UserID, Title, Description, IsPublic)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (session["user_id"], title, description, is_public),
+                )
+                connection.commit()
+                list_id = cursor.lastrowid
+
+            return jsonify({"message": "Trip list created successfully.", "list_id": list_id}), 201
+
+        finally:
             connection.close()
-            session.clear()
-            return json_error("Your session is no longer valid. Please log in again.", 401)
-
-        write_cursor = connection.cursor()
-        write_cursor.execute(
-            """
-            INSERT INTO TripList (UserID, Title, Description, IsPublic)
-            VALUES (%s, %s, %s, %s)
-            """,
-            (session["user_id"], title, description, is_public),
-        )
-        connection.commit()
-        list_id = write_cursor.lastrowid
-        write_cursor.close()
-        connection.close()
-
-        return jsonify({"message": "Trip list created successfully.", "list_id": list_id}), 201
 
     @app.get("/api/lists/<int:list_id>")
     def api_trip_list_detail(list_id):
@@ -1185,7 +1230,12 @@ def register_api_routes(app):
             return permission_error
 
         payload = get_json_payload()
-        ordered_place_ids = [int(place_id) for place_id in payload.get("ordered_place_ids", [])]
+
+        try:
+            ordered_place_ids = [int(place_id) for place_id in payload.get("ordered_place_ids", [])]
+        except (TypeError, ValueError):
+            return json_error("Invalid reorder payload.")
+        
         if not ordered_place_ids:
             return json_error("A reordered place list is required.")
 
@@ -1268,6 +1318,20 @@ def register_api_routes(app):
             cursor.close()
             connection.close()
             return json_error("Invalid trip list selection.", 403)
+
+        cursor.execute(
+            """
+            SELECT PlaceID
+            FROM Place
+            WHERE PlaceID = %s
+            """,
+            (place_id,),
+        )
+        place = cursor.fetchone()
+        if not place:
+            cursor.close()
+            connection.close()
+            return json_error("Place not found.", 404)
 
         cursor.execute(
             """
