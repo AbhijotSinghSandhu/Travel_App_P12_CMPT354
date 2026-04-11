@@ -1182,7 +1182,12 @@ def register_api_routes(app):
             return permission_error
 
         payload = get_json_payload()
-        ordered_place_ids = [int(place_id) for place_id in payload.get("ordered_place_ids", [])]
+
+        try:
+            ordered_place_ids = [int(place_id) for place_id in payload.get("ordered_place_ids", [])]
+        except (TypeError, ValueError):
+            return json_error("Invalid reorder payload.")
+        
         if not ordered_place_ids:
             return json_error("A reordered place list is required.")
 
