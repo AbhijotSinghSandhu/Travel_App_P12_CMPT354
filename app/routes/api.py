@@ -612,7 +612,19 @@ def register_api_routes(app):
         is_active = bool(payload.get("is_active"))
 
         connection = get_db_connection()
-        cursor = connection.cursor()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT PlaceID FROM Place WHERE PlaceID = %s",
+            (place_id,),
+        )
+        place = cursor.fetchone()
+
+        if not place:
+            cursor.close()
+            connection.close()
+            return json_error("Place not found.", 404)
+        
         cursor.execute(
             """
             UPDATE Place
