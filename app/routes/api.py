@@ -1321,6 +1321,20 @@ def register_api_routes(app):
 
         cursor.execute(
             """
+            SELECT PlaceID
+            FROM Place
+            WHERE PlaceID = %s
+            """,
+            (place_id,),
+        )
+        place = cursor.fetchone()
+        if not place:
+            cursor.close()
+            connection.close()
+            return json_error("Place not found.", 404)
+
+        cursor.execute(
+            """
             SELECT ListID, PlaceID
             FROM TripListItem
             WHERE ListID = %s AND PlaceID = %s
