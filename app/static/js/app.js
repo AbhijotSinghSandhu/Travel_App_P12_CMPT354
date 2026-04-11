@@ -628,7 +628,7 @@ function App() {
             <div className="panel">
               <div className="row-between" style={{ marginBottom: 16 }}>
                 <h2 className="section-title">Places</h2>
-                <span classNaSSme="subtle">{bootstrap.places.length} results</span>
+                <span className="subtle">{bootstrap.places.length} results</span>
               </div>
               <div className="stack">
                 {bootstrap.places.map((place) => (
