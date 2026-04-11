@@ -773,6 +773,18 @@ def register_api_routes(app):
 
         connection = get_db_connection()
         cursor = connection.cursor()
+
+        cursor.execute(
+            "SELECT PlaceID FROM Place WHERE PlaceID = %s",
+            (place_id,),
+        )
+        place = cursor.fetchone()
+
+        if not place:
+            cursor.close()
+            connection.close()
+            return json_error("Place not found.", 404)
+        
         cursor.execute(
             """
             INSERT INTO PlacePhoto (PlaceID, UserID, PhotoURL, Caption)
