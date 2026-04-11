@@ -4,6 +4,24 @@ A Vancouver-focused travel planning web app built with Flask, React, and MySQL.
 
 This project lets travelers organize trip lists and discover places around Vancouver, while business owners can create and manage listings through a role-based workflow. The app uses a Flask backend, a React SPA front end, and a MySQL database for persistent data.
 
+## Highlights
+
+- Role-based experience for travelers and business owners
+- Login-first interface with a polished landing screen
+- Vancouver-themed visual design
+- Trip-list planning workflow backed by MySQL
+- Flask API + React SPA architecture
+
+## Preview
+
+### Landing Screen
+
+![Landing screen](docs/images/home-screen.png)
+
+### Login Screen
+
+![Login screen](docs/images/login-screen.png)
+
 ## Overview
 
 - Travelers can create, edit, reorder, and manage trip lists
@@ -24,7 +42,7 @@ This project lets travelers organize trip lists and discover places around Vanco
 ### Traveler
 
 - Log in to a traveler account
-- Create a trip list
+- Create and manage a trip list
 - Browse places from the traveler workspace
 - Open place details and save places into a selected list
 - Edit list title, description, visibility, and ordering
@@ -50,8 +68,10 @@ Use the seeded accounts below after loading the database:
 ```text
 app/
   routes/        Flask routes and API handlers
-  static/        CSS and React front-end code
+  static/        CSS, JS, and UI assets
   templates/     Flask templates
+docs/
+  images/        README screenshots
 sql/
   schema.sql     Database schema
   seed.sql       Sample Vancouver data
@@ -109,9 +129,11 @@ Open:
 http://127.0.0.1:5001
 ```
 
-## Database Notes
+## Database Design
 
-The schema includes:
+The schema supports travelers, places, categories, trip lists, reviews, claim requests, and photos.
+
+Main tables:
 
 - `User`
 - `Place`
@@ -123,7 +145,7 @@ The schema includes:
 - `PlaceClaimRequest`
 - `PlacePhoto`
 
-The seed file includes:
+The seed file provides:
 
 - sample users with different roles
 - Vancouver places and categories
@@ -165,4 +187,4 @@ SELECT * FROM PlacePhoto;
 
 - The app runs in debug mode through `run.py`
 - The default local host is `127.0.0.1:5001`
-- The README can be extended with UI screenshots if you want a more portfolio-style presentation
+- Screenshots in this README are stored in `docs/images/`
