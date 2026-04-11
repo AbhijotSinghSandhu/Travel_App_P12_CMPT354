@@ -301,6 +301,10 @@ function App() {
       flash("success", "Trip list created.");
       await loadOwnLists(response.list_id);
       await refreshDashboard(filters, selectedPlaceId);
+
+      if (selectedPlaceId) {
+        await loadPlaceDetail(selectedPlaceId);
+      }
     } catch (error) {
       flash("error", error.message);
     }
