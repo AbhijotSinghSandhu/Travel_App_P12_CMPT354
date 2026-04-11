@@ -1,4 +1,4 @@
-const { useEffect, useState } = React;
+const { useEffect, useRef, useState } = React;
 
 async function apiFetch(url, options = {}) {
   const response = await fetch(url, {
@@ -39,6 +39,8 @@ function App() {
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("home"); 
+  const filtersReadyRef = useRef(false);
+  const [tripListBusy, setTripListBusy] = useState(false);
   const [authForm, setAuthForm] = useState({
     username: "",
     email: "",
@@ -77,6 +79,18 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!filtersReadyRef.current || view !== "search") {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      refreshDashboard(filters, selectedPlaceId).catch((error) => flash("error", error.message));
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [filters.search, filters.category, view]);
+
+  useEffect(() => {
     if (selectedPlaceId) {
       loadPlaceDetail(selectedPlaceId);
     } else {
@@ -102,6 +116,7 @@ function App() {
     setLoading(true);
     try {
       await refreshDashboard();
+      filtersReadyRef.current = true;
     } catch (error) {
       flash("error", error.message);
     } finally {
@@ -149,10 +164,19 @@ function App() {
     }
   }
 
-  async function loadOwnLists(openListId = null) {
+  async function loadOwnLists(openListId) {
     const listIndex = await apiFetch("/api/lists");
     setOwnLists(listIndex.lists);
-    const targetId = openListId || selectedOwnList?.list?.ListID || listIndex.lists[0]?.ListID;
+
+    let targetId = openListId;
+    if (targetId === undefined) {
+      targetId = selectedOwnList?.list?.ListID || listIndex.lists[0]?.ListID || null;
+    }
+
+    if (targetId && !listIndex.lists.some((tripList) => tripList.ListID === targetId)) {
+      targetId = listIndex.lists[0]?.ListID || null;
+    }
+
     if (targetId) {
       const detail = await apiFetch(`/api/lists/${targetId}`);
       setSelectedOwnList(detail);
@@ -287,6 +311,7 @@ function App() {
     if (!selectedOwnList) return;
 
     try {
+      setTripListBusy(true);
       await apiFetch(`/api/lists/${selectedOwnList.list.ListID}`, {
         method: "PUT",
         body: JSON.stringify(listEditForm),
@@ -296,6 +321,8 @@ function App() {
       await refreshDashboard(filters, selectedPlaceId);
     } catch (error) {
       flash("error", error.message);
+    } finally {
+      setTripListBusy(false);
     }
   }
 
@@ -303,12 +330,15 @@ function App() {
     if (!selectedOwnList) return;
 
     try {
+      setTripListBusy(true);
       await apiFetch(`/api/lists/${selectedOwnList.list.ListID}`, { method: "DELETE" });
       flash("success", "Trip list deleted.");
-      await loadOwnLists();
+      await loadOwnLists(null);
       await refreshDashboard(filters, selectedPlaceId);
     } catch (error) {
       flash("error", error.message);
+    } finally {
+      setTripListBusy(false);
     }
   }
 
@@ -331,12 +361,15 @@ function App() {
 
   async function removeFromList(listId, placeId) {
     try {
+      setTripListBusy(true);
       await apiFetch(`/api/lists/${listId}/places/${placeId}`, { method: "DELETE" });
       flash("success", "Place removed from list.");
       await loadOwnLists(listId);
       await refreshDashboard(filters, selectedPlaceId);
     } catch (error) {
       flash("error", error.message);
+    } finally {
+      setTripListBusy(false);
     }
   }
 
@@ -351,6 +384,7 @@ function App() {
     const orderedPlaceIds = items.map((item) => item.PlaceID);
 
     try {
+      setTripListBusy(true);
       await apiFetch(`/api/lists/${selectedOwnList.list.ListID}/reorder`, {
         method: "PUT",
         body: JSON.stringify({ ordered_place_ids: orderedPlaceIds }),
@@ -359,6 +393,8 @@ function App() {
       await loadOwnLists(selectedOwnList.list.ListID);
     } catch (error) {
       flash("error", error.message);
+    } finally {
+      setTripListBusy(false);
     }
   }
 
@@ -505,30 +541,29 @@ function App() {
   }
 
   const currentUserReview = selectedPlace?.reviews?.find((review) => review.UserID === session?.user_id);
-  const canCreatePlace = session?.role === "business_owner" || session?.role === "admin";
+  const isTraveler = session?.role === "tourist";
+  const isBusinessOwner = session?.role === "business_owner";
 
   if (loading) {
     return <div className="shell"><div className="panel">Loading travel planner...</div></div>;
   }
 
   return (
-    <div className="shell">
+    <div className={view === "home" ? "shell home-shell" : "shell"}>
         <section className="hero">
           {view === "home" && (
           <div className="hero-card hero-copy">
             <span className="eyebrow">TripAdvisor-inspired Vancouver planner</span>
-            <h1>Discover places, curate itineraries, and moderate community content.</h1>
+            <h1>Plan Vancouver simply.</h1>
             <p>
-              Travelers can browse and review destinations, save plans into trip lists, and upload photos.
-              Business owners can claim listings and keep details current. Admins can moderate claims,
-              reviews, photos, and listing visibility from the same app.
+              Explore places, save trip lists, and manage community content in one clean workspace.
             </p>
 
-            <button  onClick={() => setView("search")}>Start Exploring</button>
+            <button className="action hero-cta" onClick={() => setView("search")}>Start Exploring</button>
             <div className="hero-metrics">
               <div className="metric"><strong>{bootstrap.places.length}</strong><span className="subtle">places</span></div>
-              <div className="metric"><strong>{bootstrap.public_lists.length}</strong><span className="subtle">public trip lists</span></div>
-              <div className="metric"><strong>{selectedPlace?.photos?.length || 0}</strong><span className="subtle">photos here</span></div>
+              <div className="metric"><strong>{bootstrap.public_lists.length}</strong><span className="subtle">lists</span></div>
+              <div className="metric"><strong>{selectedPlace?.photos?.length || 0}</strong><span className="subtle">photos</span></div>
             </div>
           </div>
           )}
@@ -564,19 +599,13 @@ function App() {
             className={view === "search" ? "nav-tab active" : "nav-tab"} 
             onClick={() => setView("search")}
           >
-              Search places
-          </button>
-          <button 
-            className={view === "place" ? "nav-tab active" : "nav-tab"} 
-            onClick={() => setView("place")}
-          >
-              Place details
+              Explore
           </button>
           <button 
             className={view === "triplist" ? "nav-tab active" : "nav-tab"} 
             onClick={() => setView("triplist")}
           >
-              Public trip lists
+              Lists
           </button>
           <button 
             className={view === "account" ? "nav-tab active" : "nav-tab"} 
@@ -617,8 +646,9 @@ function App() {
               <option key={category.CategoryID} value={category.TagName}>{category.TagName}</option>
             ))}
           </select>
-          <button className="ghost" onClick={() => setFilters({ search: "", category: "" })}>Clear filters</button>
-          <button className="action" onClick={() => refreshDashboard(filters, selectedPlaceId)}>Refresh</button>
+          {(filters.search || filters.category) && (
+            <button className="ghost" onClick={() => setFilters({ search: "", category: "" })}>Reset</button>
+          )}
         </section>
       )}
 
@@ -627,7 +657,7 @@ function App() {
           { view === "search" && (
             <div className="panel">
               <div className="row-between" style={{ marginBottom: 16 }}>
-                <h2 className="section-title">Places</h2>
+                <h2 className="section-title">Explore</h2>
                 <span className="subtle">{bootstrap.places.length} results</span>
               </div>
               <div className="stack">
@@ -696,6 +726,7 @@ function App() {
             <div className="panel">
               {selectedPlace ? (
                 <>
+                  <button className="back-link" onClick={() => setView("search")}>Back to explore</button>
                   <div className="row-between">
                     <div>
                       <h2 className="section-title detail-title">{selectedPlace.place.Name}</h2>
@@ -889,61 +920,65 @@ function App() {
                     Signed in as <strong>{session.display_name}</strong>. Your role is <strong>{session.role.replace("_", " ")}</strong>.
                   </div>
 
-                  <form className="form-grid" onSubmit={createList}>
-                    <h3 style={{ marginBottom: 0 }}>Create a trip list</h3>
-                    <div className="field">
-                      <input value={listForm.title} onChange={(event) => setListForm((current) => ({ ...current, title: event.target.value }))} placeholder="Weekend food trail" />
-                    </div>
-                    <div className="field">
-                      <textarea value={listForm.description} onChange={(event) => setListForm((current) => ({ ...current, description: event.target.value }))} placeholder="What is this itinerary for?" />
-                    </div>
-                    <label className="subtle">
-                      <input type="checkbox" checked={listForm.is_public} onChange={(event) => setListForm((current) => ({ ...current, is_public: event.target.checked }))} />{" "}
-                      Make this public
-                    </label>
-                    <button className="action" type="submit">Create list</button>
-                  </form>
+                  {isTraveler && (
+                    <form className="form-grid" onSubmit={createList}>
+                      <h3 style={{ marginBottom: 0 }}>Create a trip list</h3>
+                      <p className="subtle form-intro">Travelers can save and organize places here.</p>
+                      <div className="field">
+                        <input value={listForm.title} onChange={(event) => setListForm((current) => ({ ...current, title: event.target.value }))} placeholder="Weekend food trail" />
+                      </div>
+                      <div className="field">
+                        <textarea value={listForm.description} onChange={(event) => setListForm((current) => ({ ...current, description: event.target.value }))} placeholder="What is this itinerary for?" />
+                      </div>
+                      <label className="subtle toggle-row">
+                        <input type="checkbox" checked={listForm.is_public} onChange={(event) => setListForm((current) => ({ ...current, is_public: event.target.checked }))} />
+                        Public list
+                      </label>
+                      <button className="action" type="submit">Create list</button>
+                    </form>
+                  )}
 
-                  {canCreatePlace && (
-                    <div className="section-block">
-                      <form className="form-grid" onSubmit={submitNewPlace}>
-                        <h3 style={{ marginTop: 0, marginBottom: 0 }}>Create a new place listing</h3>
-                        <div className="field">
-                          <input value={newPlaceForm.name} onChange={(event) => setNewPlaceForm((current) => ({ ...current, name: event.target.value }))} placeholder="Place name" />
-                        </div>
-                        <div className="field">
-                          <input value={newPlaceForm.address} onChange={(event) => setNewPlaceForm((current) => ({ ...current, address: event.target.value }))} placeholder="Address" />
-                        </div>
-                        <div className="field">
-                          <textarea value={newPlaceForm.description} onChange={(event) => setNewPlaceForm((current) => ({ ...current, description: event.target.value }))} placeholder="Description" />
-                        </div>
-                        <div className="field">
-                          <input value={newPlaceForm.hours} onChange={(event) => setNewPlaceForm((current) => ({ ...current, hours: event.target.value }))} placeholder="Hours" />
-                        </div>
-                        <div className="field">
-                          <input value={newPlaceForm.contact_info} onChange={(event) => setNewPlaceForm((current) => ({ ...current, contact_info: event.target.value }))} placeholder="Contact info" />
-                        </div>
-                        <div className="field">
-                          <input value={newPlaceForm.website} onChange={(event) => setNewPlaceForm((current) => ({ ...current, website: event.target.value }))} placeholder="Website URL" />
-                        </div>
-                        <div className="field">
-                          <label>Categories</label>
-                          <select
-                            multiple
-                            value={newPlaceForm.category_ids}
-                            onChange={(event) => setNewPlaceForm((current) => ({
-                              ...current,
-                              category_ids: Array.from(event.target.selectedOptions, (option) => option.value),
-                            }))}
-                          >
-                            {bootstrap.categories.map((category) => (
-                              <option key={category.CategoryID} value={category.CategoryID}>{category.TagName}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <button className="action" type="submit">Create listing</button>
-                      </form>
-                    </div>
+                  {isBusinessOwner && (
+                    <form className="form-grid" onSubmit={submitNewPlace}>
+                      <h3 style={{ marginBottom: 0 }}>Create a place listing</h3>
+                      <p className="subtle form-intro">Business owners can add and manage places.</p>
+                      <div className="field">
+                        <input value={newPlaceForm.name} onChange={(event) => setNewPlaceForm((current) => ({ ...current, name: event.target.value }))} placeholder="Place name" />
+                      </div>
+                      <div className="field">
+                        <input value={newPlaceForm.address} onChange={(event) => setNewPlaceForm((current) => ({ ...current, address: event.target.value }))} placeholder="Address" />
+                      </div>
+                      <div className="field">
+                        <textarea value={newPlaceForm.description} onChange={(event) => setNewPlaceForm((current) => ({ ...current, description: event.target.value }))} placeholder="Description" />
+                      </div>
+                      <div className="field field-split">
+                        <input value={newPlaceForm.hours} onChange={(event) => setNewPlaceForm((current) => ({ ...current, hours: event.target.value }))} placeholder="Hours" />
+                        <input value={newPlaceForm.contact_info} onChange={(event) => setNewPlaceForm((current) => ({ ...current, contact_info: event.target.value }))} placeholder="Contact info" />
+                      </div>
+                      <div className="field">
+                        <input value={newPlaceForm.website} onChange={(event) => setNewPlaceForm((current) => ({ ...current, website: event.target.value }))} placeholder="Website URL" />
+                      </div>
+                      <div className="field">
+                        <label>Categories</label>
+                        <select
+                          multiple
+                          value={newPlaceForm.category_ids}
+                          onChange={(event) => setNewPlaceForm((current) => ({
+                            ...current,
+                            category_ids: Array.from(event.target.selectedOptions, (option) => option.value),
+                          }))}
+                        >
+                          {bootstrap.categories.map((category) => (
+                            <option key={category.CategoryID} value={category.CategoryID}>{category.TagName}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button className="action" type="submit">Create listing</button>
+                    </form>
+                  )}
+
+                  {!isTraveler && !isBusinessOwner && (
+                    <div className="empty">Use the other sections of the app to moderate content and browse places.</div>
                   )}
                 </div>
               ) : (
@@ -1052,51 +1087,73 @@ function App() {
               {!session && <p className="subtle">Sign in to build and reorder your own itineraries.</p>}
               {session && (
                 <div className="stack" style={{ marginTop: 16 }}>
-                  {ownLists.map((tripList) => (
-                    <button className="place-card" key={tripList.ListID} onClick={() => loadOwnLists(tripList.ListID)}>
-                      <div className="row-between">
-                        <strong>{tripList.Title}</strong>
-                        <span className="chip">{tripList.IsPublic ? "Public" : "Private"}</span>
-                      </div>
-                      <div className="subtle">{tripList.Description || "No description yet."}</div>
-                    </button>
-                  ))}
+                  {ownLists.length > 0 && (
+                    <div className="list-picker">
+                      {ownLists.map((tripList) => (
+                        <button
+                          className={selectedOwnList?.list?.ListID === tripList.ListID ? "list-tab active" : "list-tab"}
+                          key={tripList.ListID}
+                          type="button"
+                          onClick={() => loadOwnLists(tripList.ListID)}
+                          disabled={tripListBusy}
+                        >
+                          {tripList.Title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {ownLists.length === 0 && <div className="empty">Create your first trip list to start planning.</div>}
 
                   {selectedOwnList && (
                     <div className="list-item">
                       <form className="form-grid" onSubmit={updateList}>
-                        <h3 style={{ marginTop: 0 }}>Edit selected trip list</h3>
-                        <div className="field">
-                          <input value={listEditForm.title} onChange={(event) => setListEditForm((current) => ({ ...current, title: event.target.value }))} />
+                        <div className="row-between" style={{ gap: 16 }}>
+                          <div>
+                            <h3 style={{ margin: 0 }}>{selectedOwnList.list.Title}</h3>
+                            <div className="subtle">
+                              {selectedOwnList.items.length} stop{selectedOwnList.items.length === 1 ? "" : "s"}
+                            </div>
+                          </div>
+                          <span className="chip">{listEditForm.is_public ? "Public" : "Private"}</span>
                         </div>
                         <div className="field">
-                          <textarea value={listEditForm.description} onChange={(event) => setListEditForm((current) => ({ ...current, description: event.target.value }))} />
+                          <input
+                            value={listEditForm.title}
+                            onChange={(event) => setListEditForm((current) => ({ ...current, title: event.target.value }))}
+                            placeholder="List title"
+                          />
                         </div>
-                        <label className="subtle">
+                        <div className="field">
+                          <textarea
+                            value={listEditForm.description}
+                            onChange={(event) => setListEditForm((current) => ({ ...current, description: event.target.value }))}
+                            placeholder="Short description"
+                          />
+                        </div>
+                        <label className="subtle toggle-row">
                           <input type="checkbox" checked={listEditForm.is_public} onChange={(event) => setListEditForm((current) => ({ ...current, is_public: event.target.checked }))} />{" "}
                           Public list
                         </label>
                         <div className="split-actions">
-                          <button className="action" type="submit">Save list</button>
-                          <button className="danger" type="button" onClick={deleteList}>Delete list</button>
+                          <button className="action" type="submit" disabled={tripListBusy}>Save</button>
+                          <button className="ghost" type="button" onClick={deleteList} disabled={tripListBusy}>Delete</button>
                         </div>
                       </form>
 
                       <div className="stack" style={{ marginTop: 18 }}>
                         {selectedOwnList.items.map((item, index) => (
-                          <div className="list-item" key={`${item.ListID}-${item.PlaceID}`}>
+                          <div className="list-row" key={`${item.ListID}-${item.PlaceID}`}>
                             <div className="row-between">
-                              <div>
+                              <div className="item-copy">
                                 <strong>{item.Position}. {item.Name}</strong>
                                 <div className="subtle">{item.Address}</div>
+                                <div className="subtle">{item.Note || "No note added."}</div>
                               </div>
-                              <button className="danger" onClick={() => removeFromList(item.ListID, item.PlaceID)}>Remove</button>
-                            </div>
-                            <div className="subtle">{item.Note || "No note added."}</div>
-                            <div className="review-actions">
-                              <button className="ghost" onClick={() => moveListItem("up", index)}>Move up</button>
-                              <button className="ghost" onClick={() => moveListItem("down", index)}>Move down</button>
+                              <div className="compact-actions">
+                                <button className="ghost" type="button" onClick={() => moveListItem("up", index)} disabled={tripListBusy || index === 0}>Up</button>
+                                <button className="ghost" type="button" onClick={() => moveListItem("down", index)} disabled={tripListBusy || index === selectedOwnList.items.length - 1}>Down</button>
+                                <button className="ghost" type="button" onClick={() => removeFromList(item.ListID, item.PlaceID)} disabled={tripListBusy}>Remove</button>
+                              </div>
                             </div>
                           </div>
                         ))}
