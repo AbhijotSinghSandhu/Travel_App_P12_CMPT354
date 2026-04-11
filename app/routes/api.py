@@ -786,21 +786,32 @@ def register_api_routes(app):
             return json_error("Status must be approved or rejected.")
 
         connection = get_db_connection()
-        cursor = connection.cursor()
-        cursor.execute(
-            """
-            UPDATE PlacePhoto
-            SET Status = %s,
-                ModeratedAt = CURRENT_TIMESTAMP,
-                ModeratedByUserID = %s
-            WHERE PhotoID = %s
-            """,
-            (status, session["user_id"], photo_id),
-        )
-        connection.commit()
-        cursor.close()
-        connection.close()
-        return jsonify({"message": "Photo moderation updated."})
+        try:
+            with connection.cursor(dictionary=True) as cursor:
+                cursor.execute(
+                    "SELECT PhotoID FROM PlacePhoto WHERE PhotoID = %s",
+                    (photo_id,),
+                )
+                photo = cursor.fetchone()
+
+                if not photo:
+                    return json_error("Photo not found.", 404)
+
+                cursor.execute(
+                    """
+                    UPDATE PlacePhoto
+                    SET Status = %s,
+                        ModeratedAt = CURRENT_TIMESTAMP,
+                        ModeratedByUserID = %s
+                    WHERE PhotoID = %s
+                    """,
+                    (status, session["user_id"], photo_id),
+                )
+                connection.commit()
+
+            return jsonify({"message": "Photo moderation updated."})
+        finally:
+            connection.close()
 
     @app.post("/api/places/<int:place_id>/reviews")
     def api_create_review(place_id):
