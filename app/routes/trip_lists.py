@@ -116,50 +116,53 @@ def register_trip_list_routes(app):
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        cursor.execute("""
-            SELECT ListID, UserID
-            FROM TripList
-            WHERE ListID = %s
-        """, (list_id,))
-        trip_list = cursor.fetchone()
+        try:
+            cursor.execute("""
+                SELECT ListID, UserID
+                FROM TripList
+                WHERE ListID = %s
+            """, (list_id,))
+            trip_list = cursor.fetchone()
 
-        if not trip_list or trip_list["UserID"] != session["user_id"]:
-            cursor.close()
-            connection.close()
-            flash("Invalid trip list selection.")
-            return redirect(url_for("place_detail", place_id=place_id))
+            if not trip_list or trip_list["UserID"] != session["user_id"]:
+                flash("Invalid trip list selection.")
+                return redirect(url_for("place_detail", place_id=place_id))
 
-        cursor.execute("""
-            SELECT ListID, PlaceID
-            FROM TripListItem
-            WHERE ListID = %s AND PlaceID = %s
-        """, (list_id, place_id))
-        existing_item = cursor.fetchone()
+            cursor.execute("""
+                SELECT ListID, PlaceID
+                FROM TripListItem
+                WHERE ListID = %s AND PlaceID = %s
+            """, (list_id, place_id))
+            existing_item = cursor.fetchone()
 
-        if existing_item:
-            cursor.close()
-            connection.close()
+            if existing_item:
+                flash("This place is already in the selected trip list.")
+                return redirect(url_for("place_detail", place_id=place_id))
+
+            cursor.execute("""
+                SELECT COALESCE(MAX(Position), 0) + 1 AS next_position
+                FROM TripListItem
+                WHERE ListID = %s
+            """, (list_id,))
+            next_position_row = cursor.fetchone()
+            next_position = next_position_row["next_position"]
+
+            cursor.execute("""
+                INSERT INTO TripListItem (ListID, PlaceID, Position, Note)
+                VALUES (%s, %s, %s, %s)
+            """, (list_id, place_id, next_position, note))
+            connection.commit()
+
+            flash("Place added to trip list.")
+
+        except Exception:
+            connection.rollback()
             flash("This place is already in the selected trip list.")
-            return redirect(url_for("place_detail", place_id=place_id))
 
-        cursor.execute("""
-            SELECT COALESCE(MAX(Position), 0) + 1 AS next_position
-            FROM TripListItem
-            WHERE ListID = %s
-        """, (list_id,))
-        next_position_row = cursor.fetchone()
-        next_position = next_position_row["next_position"]
+        finally:
+            cursor.close()
+            connection.close()
 
-        cursor.execute("""
-            INSERT INTO TripListItem (ListID, PlaceID, Position, Note)
-            VALUES (%s, %s, %s, %s)
-        """, (list_id, place_id, next_position, note))
-        connection.commit()
-
-        cursor.close()
-        connection.close()
-
-        flash("Place added to trip list.")
         return redirect(url_for("place_detail", place_id=place_id))
 
     @app.route("/lists/<int:list_id>/remove/<int:place_id>", methods=["POST"])
