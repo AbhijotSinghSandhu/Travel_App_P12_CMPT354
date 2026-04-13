@@ -107,14 +107,7 @@ DB_PASSWORD=example-mysql-password
 Make sure MySQL is running, then run:
 
 ```bash
-mysql -u root -p travel_app < sql/schema.sql
-mysql -u root -p travel_app < sql/seed.sql
-```
-
-If the database does not exist yet, create it first:
-
-```sql
-CREATE DATABASE travel_app;
+mysql -u root -p < sql/init.sql
 ```
 
 ### 4. Start the app
@@ -159,8 +152,7 @@ The seed file provides:
 If you want to reset the project to the seeded state:
 
 ```bash
-mysql -u root -p travel_app < sql/schema.sql
-mysql -u root -p travel_app < sql/seed.sql
+mysql -u root -p < sql/init.sql
 ```
 
 ## Useful Verification Queries

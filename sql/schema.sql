@@ -1,6 +1,3 @@
-CREATE DATABASE IF NOT EXISTS travel_app;
-USE travel_app;
-
 DROP TABLE IF EXISTS PlacePhoto;
 DROP TABLE IF EXISTS PlaceClaimRequest;
 DROP TABLE IF EXISTS PlaceCategory;
