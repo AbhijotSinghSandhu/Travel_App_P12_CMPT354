@@ -1,7 +1,6 @@
 from flask import Flask
 from config import Config
 from app.db import get_db_connection
-from app.db_triggers import create_triggers
 
 
 def create_app():
@@ -11,7 +10,6 @@ def create_app():
     with app.app_context():
         try:
             connection = get_db_connection()
-            create_triggers(connection)
             connection.close()
             print("Database connection successful.")
         except Exception as e:
