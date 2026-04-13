@@ -104,10 +104,18 @@ DB_PASSWORD=example-mysql-password
 
 ### 3. Create and load the database
 
-Make sure MySQL is running, then run:
+Make sure MySQL is running
 
 ```bash
-mysql -u root -p < sql/init.sql
+mysql -u root -p
+```
+Inside the MySQL prompt, run:
+
+```bash
+CREATE DATABASE IF NOT EXISTS travel_app;
+USE travel_app;
+source sql/schema.sql;
+source sql/seed.sql;
 ```
 
 ### 4. Start the app
